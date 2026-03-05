@@ -24,13 +24,11 @@ export default function Dashboard() {
   const [errorCount, setErrorCount] = useState(0);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Load from localStorage
   useEffect(() => {
     setSources(getSources());
     setKeywords(getKeywords());
   }, []);
 
-  // Fetch feeds
   const fetchFeeds = useCallback(async () => {
     const enabledSources = sources.filter((s) => s.enabled);
     if (enabledSources.length === 0) {
@@ -86,12 +84,10 @@ export default function Dashboard() {
       }
     });
 
-    // Sort by date descending
     allItems.sort(
       (a, b) => new Date(b.pubDate).getTime() - new Date(a.pubDate).getTime()
     );
 
-    // Deduplicate by title similarity
     const seen = new Set<string>();
     const deduped = allItems.filter((item) => {
       const key = item.title.toLowerCase().slice(0, 60);
@@ -106,19 +102,16 @@ export default function Dashboard() {
     setLoading(false);
   }, [sources, keywords]);
 
-  // Initial fetch and auto-refresh
   useEffect(() => {
     if (sources.length > 0) {
       fetchFeeds();
     }
-    // Auto-refresh every 5 minutes
     intervalRef.current = setInterval(fetchFeeds, 5 * 60 * 1000);
     return () => {
       if (intervalRef.current) clearInterval(intervalRef.current);
     };
   }, [fetchFeeds, sources.length]);
 
-  // Filter items
   const filteredItems = items.filter((item) => {
     if (!activeTypes.has(item.source.type)) return false;
     if (!isWithinTimeFilter(item.pubDate, timeFilter)) return false;
@@ -181,85 +174,92 @@ export default function Dashboard() {
   ).length;
 
   return (
-    <div className="min-h-screen" style={{ background: "var(--bg-primary)" }}>
-      {/* Header */}
-      <header
-        className="sticky top-0 z-50 border-b px-4 py-3 flex items-center justify-between"
-        style={{
-          background: "var(--bg-secondary)",
-          borderColor: "var(--border)",
-        }}
-      >
-        <div className="flex items-center gap-3">
-          <button
-            className="lg:hidden p-1"
-            onClick={() => setSidebarOpen(!sidebarOpen)}
-          >
-            <svg
-              width="24"
-              height="24"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
+    <div className="min-h-screen bg-[var(--color-bg-primary)]">
+      {/* Sticky Header */}
+      <header className="sticky top-0 z-50 border-b border-[var(--color-border)] glass">
+        <div className="flex h-16 items-center justify-between px-4 sm:px-6">
+          <div className="flex items-center gap-4">
+            {/* Mobile menu toggle */}
+            <button
+              className="lg:hidden flex items-center justify-center w-9 h-9 rounded-lg border border-[var(--color-border)] bg-[var(--color-bg-secondary)] text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] hover:border-[var(--color-border-hover)] transition-all duration-200"
+              onClick={() => setSidebarOpen(!sidebarOpen)}
             >
-              <path d="M3 12h18M3 6h18M3 18h18" />
-            </svg>
-          </button>
-          <div className="flex items-center gap-2">
-            <span className="text-lg">🔍</span>
-            <h1 className="text-lg font-bold tracking-tight">
-              OSINT Dashboard
-            </h1>
-          </div>
-        </div>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                <path d="M3 12h18M3 6h18M3 18h18" />
+              </svg>
+            </button>
 
-        <div className="flex items-center gap-3">
-          {lastRefresh && (
-            <span
-              className="text-xs hidden sm:block"
-              style={{ color: "var(--text-muted)" }}
+            {/* Logo */}
+            <div className="flex items-center gap-3">
+              <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-gradient-to-br from-red-500/20 to-orange-500/20 border border-red-500/20">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-red-400">
+                  <circle cx="12" cy="12" r="10" />
+                  <circle cx="12" cy="12" r="3" />
+                  <path d="M12 2v4M12 18v4M2 12h4M18 12h4" />
+                </svg>
+              </div>
+              <div>
+                <h1 className="text-base font-semibold tracking-tight text-[var(--color-text-primary)]">
+                  OSINT Dashboard
+                </h1>
+                <p className="text-[11px] text-[var(--color-text-muted)] hidden sm:block -mt-0.5">
+                  Real-time intelligence monitoring
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 sm:gap-3">
+            {/* Last refresh */}
+            {lastRefresh && (
+              <span className="text-xs text-[var(--color-text-muted)] hidden md:flex items-center gap-1.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 pulse-dot" />
+                {lastRefresh.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+              </span>
+            )}
+
+            {/* Error badge */}
+            {errorCount > 0 && (
+              <span className="inline-flex items-center gap-1 rounded-full bg-red-500/10 px-2.5 py-1 text-xs font-medium text-red-400 border border-red-500/20">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <circle cx="12" cy="12" r="10" />
+                  <path d="M12 8v4M12 16h.01" />
+                </svg>
+                {errorCount}
+              </span>
+            )}
+
+            {/* Keyword match badge */}
+            {keywordMatchCount > 0 && (
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-red-500/10 px-2.5 py-1 text-xs font-medium text-red-400 border border-red-500/20">
+                <span className="w-1.5 h-1.5 rounded-full bg-red-400 pulse-dot" />
+                {keywordMatchCount} alert{keywordMatchCount > 1 ? "s" : ""}
+              </span>
+            )}
+
+            {/* Refresh button */}
+            <button
+              onClick={() => fetchFeeds()}
+              disabled={loading}
+              className="flex items-center gap-1.5 rounded-lg border border-[var(--color-border)] bg-[var(--color-bg-secondary)] px-3 py-2 text-xs font-medium text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] hover:border-[var(--color-border-hover)] hover:bg-[var(--color-bg-tertiary)] transition-all duration-200 disabled:opacity-50"
             >
-              Updated {lastRefresh.toLocaleTimeString()}
-            </span>
-          )}
-          {errorCount > 0 && (
-            <span className="text-xs px-2 py-0.5 rounded" style={{ background: "rgba(239,68,68,0.2)", color: "var(--accent-red)" }}>
-              {errorCount} feed error{errorCount > 1 ? "s" : ""}
-            </span>
-          )}
-          {keywordMatchCount > 0 && (
-            <span
-              className="text-xs font-medium px-2 py-0.5 rounded"
-              style={{
-                background: "rgba(239, 68, 68, 0.2)",
-                color: "var(--accent-red)",
-              }}
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={loading ? "animate-spin" : ""}>
+                <path d="M21 12a9 9 0 11-6.219-8.56" />
+              </svg>
+              <span className="hidden sm:inline">Refresh</span>
+            </button>
+
+            {/* Add source button */}
+            <button
+              onClick={() => setShowAddSource(true)}
+              className="flex items-center gap-1.5 rounded-lg bg-blue-600 px-3 py-2 text-xs font-medium text-white hover:bg-blue-500 active:scale-[0.98] transition-all duration-200"
             >
-              🔴 {keywordMatchCount} alert{keywordMatchCount > 1 ? "s" : ""}
-            </span>
-          )}
-          <button
-            onClick={() => fetchFeeds()}
-            className="text-sm px-3 py-1.5 rounded font-medium transition-colors"
-            style={{
-              background: "var(--bg-tertiary)",
-              color: "var(--text-primary)",
-            }}
-            disabled={loading}
-          >
-            {loading ? "⏳" : "↻"} Refresh
-          </button>
-          <button
-            onClick={() => setShowAddSource(true)}
-            className="text-sm px-3 py-1.5 rounded font-medium transition-colors"
-            style={{
-              background: "var(--accent-blue)",
-              color: "white",
-            }}
-          >
-            + Source
-          </button>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M12 5v14M5 12h14" />
+              </svg>
+              <span className="hidden sm:inline">Add Source</span>
+            </button>
+          </div>
         </div>
       </header>
 
@@ -290,6 +290,42 @@ export default function Dashboard() {
             loading={loading}
           />
         </main>
+      </div>
+
+      {/* Mobile bottom bar */}
+      <div className="fixed bottom-0 left-0 right-0 z-40 lg:hidden border-t border-[var(--color-border)] glass px-4 py-3">
+        <div className="flex items-center justify-between max-w-lg mx-auto">
+          <button
+            onClick={() => setSidebarOpen(true)}
+            className="flex flex-col items-center gap-1 text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)] transition-colors"
+          >
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M3 6h18M3 12h12M3 18h18" />
+            </svg>
+            <span className="text-[10px] font-medium">Filters</span>
+          </button>
+
+          <button
+            onClick={() => fetchFeeds()}
+            disabled={loading}
+            className="flex flex-col items-center gap-1 text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)] transition-colors disabled:opacity-50"
+          >
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={loading ? "animate-spin" : ""}>
+              <path d="M21 12a9 9 0 11-6.219-8.56" />
+            </svg>
+            <span className="text-[10px] font-medium">Refresh</span>
+          </button>
+
+          <button
+            onClick={() => setShowAddSource(true)}
+            className="flex flex-col items-center gap-1 text-blue-400 hover:text-blue-300 transition-colors"
+          >
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M12 5v14M5 12h14" />
+            </svg>
+            <span className="text-[10px] font-medium">Add</span>
+          </button>
+        </div>
       </div>
 
       {/* Add Source Modal */}
