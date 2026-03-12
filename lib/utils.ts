@@ -52,7 +52,46 @@ export function sourceTypeBadgeClass(type: SourceType): string {
 }
 
 export function stripHtml(text: string): string {
-  return text.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
+  if (!text) return "";
+
+  const withoutComments = text.replace(/<!--[\s\S]*?-->/g, " ");
+  const withoutTags = withoutComments.replace(/<\/?[^>]+>/g, " ");
+  const decoded = decodeHtmlEntities(withoutTags);
+  const normalized = decoded.replace(/\s+/g, " ").trim();
+
+  return truncateForCard(normalized);
+}
+
+const HTML_ENTITY_MAP: Record<string, string> = {
+  amp: "&",
+  lt: "<",
+  gt: ">",
+  quot: "\"",
+  apos: "'",
+  "#039": "'",
+  nbsp: " ",
+};
+
+function decodeHtmlEntities(input: string): string {
+  return input
+    .replace(/&#x([0-9a-fA-F]+);/g, (_match, hex) => {
+      const codePoint = Number.parseInt(hex, 16);
+      return Number.isNaN(codePoint) ? "" : String.fromCodePoint(codePoint);
+    })
+    .replace(/&#(\d+);/g, (_match, dec) => {
+      const codePoint = Number.parseInt(dec, 10);
+      return Number.isNaN(codePoint) ? "" : String.fromCodePoint(codePoint);
+    })
+    .replace(/&([a-zA-Z#0-9]+);/g, (match, name) => {
+      const key = name.toLowerCase();
+      return HTML_ENTITY_MAP[key] ?? match;
+    });
+}
+
+function truncateForCard(input: string, maxLength = 250): string {
+  if (input.length <= maxLength) return input;
+  const truncated = input.slice(0, Math.max(0, maxLength - 3)).trimEnd();
+  return `${truncated}...`;
 }
 
 function escapeRegExp(input: string): string {
